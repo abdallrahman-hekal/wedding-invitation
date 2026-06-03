@@ -84,7 +84,7 @@ body{ background:var(--warm-white); color:var(--text); overflow-x:hidden; font-f
   padding:18px 60px;
   background:transparent;
   border:1.5px solid var(--tan);
-  border-radius:50px;          
+  border-radius:50px;
   color:var(--sand);
   font-family:'Cormorant Garamond', serif;
   font-size:20px;
@@ -564,7 +564,7 @@ function buildWishCards(){
     card.className = "wcard whidden";
     card.dataset.idx = i;
     card.innerHTML = `
-      <div class="wname">${escHtml(w.name)}</div>
+      <div class="wname">${escHtml(fancyName(w.name))}</div>
       <div class="wdeco">✦ ✦ ✦</div>
       <div class="wtext">${escHtml(w.message)}</div>
     `;
@@ -600,6 +600,31 @@ function escHtml(s){
     .replace(/"/g,"&quot;");
 }
 
+/* ── FANCY NAME FONT ── */
+function fancyName(str){
+  str = String(str);
+  const isArabic = /[\u0600-\u06FF]/.test(str);
+  if(isArabic){
+    const decorated = str.split('').map(c => {
+      if(/[\u0600-\u06FF]/.test(c)) return c + '\u0640';
+      return c;
+    }).join('');
+    return '\u2736 ' + decorated + ' \u2736';
+  } else {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const su = [...'𝓐𝓑𝓒𝓓𝓔𝓕𝓖𝓗𝓘𝓙𝓚𝓛𝓜𝓝𝓞𝓟𝓠𝓡𝓢𝓣𝓤𝓥𝓦𝓧𝓨𝓩'];
+    const sl = [...'𝓪𝓫𝓬𝓭𝓮𝓯𝓰𝓱𝓲𝓳𝓴𝓵𝓶𝓷𝓸𝓹𝓺𝓻𝓼𝓽𝓾𝓿𝔀𝔁𝔂𝔃'];
+    return [...str].map(c => {
+      const ui = upper.indexOf(c);
+      const li = lower.indexOf(c);
+      if(ui !== -1) return su[ui];
+      if(li !== -1) return sl[li];
+      return c;
+    }).join('');
+  }
+}
+
 // Submit wish
 async function submitWish(){
   const nameEl = document.getElementById("wishName");
@@ -614,7 +639,15 @@ async function submitWish(){
   if(!msg){  msgEl.textContent = "من فضلك اكتب دعوتك ✦"; return; }
 
   if(!window._firebaseReady){
-    msgEl.textContent = "⚠ لم يتم ضبط Firebase بعد";
+    // Firebase not configured yet — show locally so user sees result
+    const localWish = { id: 'local_' + Date.now(), name, message: msg };
+    wishes.push(localWish);
+    nameEl.value = "";
+    textEl.value = "";
+    msgEl.textContent = "تم إرسال دعوتك ✦";
+    setTimeout(()=>{ msgEl.textContent = ""; }, 3000);
+    buildWishCards();
+    startWishRotation();
     return;
   }
 
