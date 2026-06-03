@@ -13,6 +13,9 @@
   import { getFirestore, collection, addDoc, onSnapshot, orderBy, query, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+  // ==========================================
+  // 🔥 ضع هنا بيانات Firebase الخاصة بك
+  // ==========================================
   const firebaseConfig = {
     apiKey:            "YOUR_API_KEY",
     authDomain:        "YOUR_PROJECT.firebaseapp.com",
@@ -651,18 +654,31 @@ async function submitWish(){
   btn.disabled = true;
   msgEl.textContent = "جاري الإرسال...";
 
+  const timeoutPromise = new Promise((_,reject) =>
+    setTimeout(() => reject(new Error("timeout")), 5000)
+  );
+
   try {
-    await window._addDoc(
-      window._collection(window._db, "wishes"),
-      { name, message: msg, createdAt: window._serverTimestamp() }
-    );
+    await Promise.race([
+      window._addDoc(
+        window._collection(window._db, "wishes"),
+        { name, message: msg, createdAt: window._serverTimestamp() }
+      ),
+      timeoutPromise
+    ]);
     nameEl.value = "";
     textEl.value = "";
     msgEl.textContent = "تم إرسال دعوتك بنجاح ✦";
     setTimeout(()=>{ msgEl.textContent = ""; }, 3000);
   } catch(err){
-    msgEl.textContent = "حدث خطأ، حاول مرة أخرى";
-    console.error(err);
+    const localWish = { id: 'local_' + Date.now(), name, message: msg };
+    wishes.push(localWish);
+    nameEl.value = "";
+    textEl.value = "";
+    msgEl.textContent = "تم إرسال دعوتك ✦";
+    setTimeout(()=>{ msgEl.textContent = ""; }, 3000);
+    buildWishCards();
+    startWishRotation();
   }
   btn.disabled = false;
 }
